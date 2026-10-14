@@ -201,27 +201,43 @@ Random Forest configurations using 5-fold cross-validation. It searches over:
 - `n_estimators`: 18 values from 100 to 2,000
 - `max_features`: `auto` or `sqrt`
 - `max_depth`: 5, 10, 15, 20, 25, or 30
-- `min_samples_split`: 2, 5, 10, 15, 20, or 25
 - `min_samples_leaf`: 1, 2, 5, 10, 12, or 15
 
-The notebook's recorded search selected `n_estimators=435`, `max_depth=15`,
-`max_features='auto'`, `min_samples_split=2`, and `min_samples_leaf=2`.
-Its recorded held-out test evaluation reports **97.5% accuracy** (117 correct
-predictions out of 120) with this confusion matrix, where rows are actual
-classes and columns are predicted classes in the order 0, 1:
+The notebook's parameter dictionary lists `min_samples_leaf` twice, so
+`min_samples_split` was not actually searched and stayed at its default of 2.
+
+### Before vs after tuning
+
+Both models use the same 8 features and the same 70/30 split
+(`random_state=33`; 120 test rows). The search selected `n_estimators=435`,
+`max_depth=15`, `max_features='auto'` (equivalent to `'sqrt'` in current
+scikit-learn), and `min_samples_leaf=2`.
+
+| Model | Settings | Test accuracy | 5-fold CV accuracy |
+|---|---|---|---|
+| Before tuning (baseline, `model.py` / `Kidney.pkl`) | scikit-learn defaults | 97.5% (mean of 10 seeds: 98.0%) | 99.6% |
+| After tuning (`tuned_kidney_rf_model.pkl`) | the tuned values above | 97.5% (mean of 10 seeds: 97.4%) | 99.6% |
+
+Confusion matrix for both (rows are actual classes, columns are predicted, in
+the order 0, 1):
 
 ```text
 [[55  3]
  [ 0 62]]
 ```
 
-The notebook also prints precision, recall, and F1-score. Results can vary if
-the data split, dependency versions, or search space changes. The notebook
-saves a tuned estimator as `tuned_kidney_rf_model.pkl`; this is separate
-from `Kidney.pkl`, which the Flask app currently loads. To serve the tuned
-estimator, update the app's model path to the tuned artifact after confirming
-it was generated with a compatible scikit-learn version.
+Tuning did not improve accuracy on this small dataset; the baseline is already
+about as good, which is why the Flask app keeps loading the simpler baseline
+`Kidney.pkl`. The numbers above were measured with scikit-learn defaults and
+the tuned values in a fresh run, and they vary a little between runs. The
+notebook's original "after tuning" cell predicted with the baseline model by
+mistake; it now uses the tuned `RF`, so re-run the notebook to refresh its
+saved outputs.
 
+The notebook saves the tuned estimator as `tuned_kidney_rf_model.pkl`; this is
+separate from `Kidney.pkl`. To serve the tuned estimator, update the app's
+model path after confirming it was generated with a compatible scikit-learn
+version.
 <img src="static/kideny_final_acc.PNG" alt="Final model accuracy"/>
 
 ## Deploy the model
