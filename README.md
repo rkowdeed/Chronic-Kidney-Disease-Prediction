@@ -238,6 +238,37 @@ The notebook saves the tuned estimator as `tuned_kidney_rf_model.pkl`; this is
 separate from `Kidney.pkl`. To serve the tuned estimator, update the app's
 model path after confirming it was generated with a compatible scikit-learn
 version.
+### Tuning on simulated data
+
+The real dataset has only 400 rows, which is too small for tuning to show a
+benefit. `simulate_and_tune.py` tests how tuning behaves with many more
+records:
+
+1. It loads `Kidney_data.csv` and applies the same cleaning as `model.py`,
+   keeping the 8 features the app uses.
+2. For each class it measures the real data's statistics: means and covariance
+   for `sg`, `hemo` and `rc`, and value frequencies for `al`, `htn`, `dm`,
+   `appet` and `pc`.
+3. It samples synthetic records from those statistics, keeping the real class
+   balance. `--overlap` widens the spread so the classes overlap more, and
+   `--noise` flips a fraction of labels so the data is not perfectly separable.
+4. It splits the simulated data 70/30 (stratified) and trains a baseline
+   Random Forest with default settings.
+5. It runs `RandomizedSearchCV` over `n_estimators`, `max_depth`,
+   `min_samples_split`, `min_samples_leaf` and `max_features`.
+6. It prints the best parameters and compares baseline and tuned accuracy on
+   the simulated test set and on the 400 real rows.
+
+```powershell
+python simulate_and_tune.py                      # 100,000 rows
+python simulate_and_tune.py --rows 200000 --noise 0.05 --iters 20 --save
+```
+
+`--save` writes `simulated_kidney_data.csv`. In a quick run (20,000 rows, 6
+search iterations) the baseline scored 95.4% and the tuned model 95.8% on the
+simulated test set. The records only reflect patterns in the 400 real rows, so
+this shows how tuning behaves at scale, not how the model would perform on real
+patients.
 <img src="static/kideny_final_acc.PNG" alt="Final model accuracy"/>
 
 ## Deploy the model
